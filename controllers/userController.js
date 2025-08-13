@@ -63,7 +63,8 @@ exports.sendOtp = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    //const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpCode = Math.floor(1000 + Math.random() * 9000).toString(); // 4 digits
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
     await Otp.deleteMany({ email }); // Remove old OTPs
