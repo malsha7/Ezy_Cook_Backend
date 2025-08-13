@@ -1,15 +1,23 @@
-// server.js
 const express = require('express');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 
 dotenv.config();
+
+// MongoDB connection
 connectDB();
 
 const app = express();
 
+// Middleware to parse JSON bodies
+app.use(express.json());
+
+// Add routes
+app.use('/api/users', require('./routes/userRoutes')); 
+
+//Default test route
 app.get('/', (req, res) => {
-    res.send('API is running...');
+    res.status(200).json({ message: 'Welcome to the Ezy Cook API!' });
 });
 
 const PORT = process.env.PORT || 5000;
