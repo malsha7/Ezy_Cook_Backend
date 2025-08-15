@@ -117,23 +117,50 @@ exports.resetPassword = async (req, res) => {
 };
 
 // Update profile (with image)
+// exports.updateProfile = async (req, res) => {
+//   try {
+//     const user = await User.findById(req.user.id);
+//     if (!user) return res.status(404).json({ message: 'User not found' });
+
+//     const { name, username, email, phoneNumber } = req.body;
+
+//     if (name) user.name = name;
+//     if (username) user.username = username;
+//     if (email) user.email = email;
+//     if (phoneNumber) user.phoneNumber = phoneNumber;
+//     if (req.file) user.profileImage = req.file.path;
+
+//     await user.save();
+
+//     res.json({ message: 'Profile updated', user });
+//   } catch (err) {
+//     res.status(500).json({ message: err.message });
+//   }
+// };
+
+// Update profile (with image) - new
 exports.updateProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const { name, username, email, phoneNumber } = req.body;
+    // Use empty object as fallback if req.body is undefined
+    const { name, username, email, phoneNumber } = req.body || {};
 
-    if (name) user.name = name;
-    if (username) user.username = username;
-    if (email) user.email = email;
-    if (phoneNumber) user.phoneNumber = phoneNumber;
-    if (req.file) user.profileImage = req.file.path;
+    // Update only if fields exist
+    if (name !== undefined) user.name = name;
+    if (username !== undefined) user.username = username;
+    if (email !== undefined) user.email = email;
+    if (phoneNumber !== undefined) user.phoneNumber = phoneNumber;
+
+    // Update profile image if file exists
+    if (req.file && req.file.path) user.profileImage = req.file.path;
 
     await user.save();
 
     res.json({ message: 'Profile updated', user });
   } catch (err) {
+    console.error(err); // Optional: log error for debugging
     res.status(500).json({ message: err.message });
   }
 };
