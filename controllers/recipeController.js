@@ -22,7 +22,8 @@ exports.createRecipe = async (req, res) => {
       mealTime: mealTime || null,
       servings: servings || 1,
       image: req.file ? req.file.path : '',
-      createdBy: req.user._id, // logged in user
+      createdBy: req.user._id, // logged-in user
+      isSystem: false, //ensure user recipes are not system recipes
     });
 
     await recipe.save();
@@ -33,8 +34,7 @@ exports.createRecipe = async (req, res) => {
 };
 
 /**
- * Update a recipe - my recipes
- *  Only the user (createdBy) can update
+ * update a recipe - only user’s my recipes
  */
 exports.updateRecipe = async (req, res) => {
   try {
@@ -63,8 +63,7 @@ exports.updateRecipe = async (req, res) => {
 };
 
 /**
- * Delete a recipe - my recipes
- *  Only the user (createdBy) can delete
+ * delete a recipe - only user’s my recipes
  */
 exports.deleteRecipe = async (req, res) => {
   try {
@@ -84,12 +83,12 @@ exports.deleteRecipe = async (req, res) => {
 };
 
 /**
- * Get all recipes
- * Used in Home / Recipe plan screens
+ * get all recipes
+ * Only system recipes for Home / Recipe plan screens
  */
 exports.getAllRecipes = async (req, res) => {
   try {
-    const recipes = await Recipe.find().populate('createdBy', 'username email');
+    const recipes = await Recipe.find({ isSystem: true }).populate('createdBy', 'username email');
     res.json(recipes);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -97,12 +96,12 @@ exports.getAllRecipes = async (req, res) => {
 };
 
 /**
- * Get all recipes created by logged-in user
+ * get all recipes created by logged-in user
  * "My Recipes" screen
  */
 exports.getMyRecipes = async (req, res) => {
   try {
-    const recipes = await Recipe.find({ createdBy: req.user._id });
+    const recipes = await Recipe.find({ createdBy: req.user._id, isSystem: false });
     res.json(recipes);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -110,8 +109,8 @@ exports.getMyRecipes = async (req, res) => {
 };
 
 /**
- * Get single recipe by ID
- * Recipe in details screen
+ * get single recipe by ID
+ *works for both system + my recipes
  */
 exports.getRecipeById = async (req, res) => {
   try {
@@ -122,6 +121,7 @@ exports.getRecipeById = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
 
 /**
  * Suggest recipes for search bar
@@ -138,15 +138,23 @@ exports.getRecipeById = async (req, res) => {
 //     res.status(500).json({ message: err.message });
 //   }
 // };
+
+
 // only start letter for suggest recipes 
+/**
+ * suggest recipes for search bar
+ * only system recipes
+ */
 exports.suggestRecipes = async (req, res) => {
   try {
     const { query } = req.query;
     if (!query) return res.json([]);
 
-    // ^ means "start of string", i = case-insensitive
-    const recipes = await Recipe.find({ title: { $regex: `^${query}`, $options: 'i' } })
-                                .select('title');
+    const recipes = await Recipe.find({
+      isSystem: true,
+      title: { $regex: `^${query}`, $options: 'i' },
+    }).select('title');
+
     res.json(recipes);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -177,21 +185,28 @@ exports.suggestRecipes = async (req, res) => {
 //     res.status(500).json({ message: err.message });
 //   }
 // };
+
+
 //$in = match if first all then two then at least one 
+
+/**
+ * filter recipes by tools, mealTime, ingredients
+ * Only system recipes
+ */
 exports.filterRecipes = async (req, res) => {
   try {
     const { tools = [], mealTime, ingredients = [] } = req.body;
-    const filter = {};
+    const filter = { isSystem: true }; // 🔹 restrict to system recipes
 
-    //  MealTime = exact match 
+    // mealtime = exact match
     if (mealTime) filter.mealTime = mealTime;
 
     let recipes = [];
 
-    //  Helper function to count matches 
+    // helper to count matches
     const countMatches = (array, selected) => array.filter(x => selected.includes(x)).length;
 
-    // Tiered filtering 
+    // tiered filtering
     const toolTiers = [tools.length, 2, 1].filter(n => n > 0);
     const ingredientTiers = [ingredients.length, 2, 1].filter(n => n > 0);
 
@@ -200,17 +215,17 @@ exports.filterRecipes = async (req, res) => {
       for (let i of ingredientTiers) {
         const currentFilter = { ...filter };
 
-        // Tools tier
+        // tools tier
         if (t === tools.length) currentFilter.tools = { $all: tools };
         else if (tools.length > 0) currentFilter.tools = { $in: tools };
 
-        // Ingredients tier
+        // ingredients tier
         if (i === ingredients.length) currentFilter['ingredients.name'] = { $all: ingredients };
         else if (ingredients.length > 0) currentFilter['ingredients.name'] = { $in: ingredients };
 
         let result = await Recipe.find(currentFilter);
 
-        // Further filter partial matches
+        // further filter partial matches
         if (t < tools.length && result.length > 0) {
           result = result.filter(r => countMatches(r.tools, tools) >= t);
         }
