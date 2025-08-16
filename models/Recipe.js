@@ -13,7 +13,7 @@ const recipeSchema = new mongoose.Schema(
       trim: true,
     },
     image: {
-      type: String, // will store file path
+      type: String, // file path or URL
       default: '',
     },
     tools: [
@@ -25,9 +25,9 @@ const recipeSchema = new mongoose.Schema(
     mealTime: {
       type: String,
       enum: ['breakfast', 'lunch', 'evening', 'dinner', 'special occasion'],
-      required: true,
+      required: false, //  user-created recipes don’t need mealTime
     },
-    ingredients: [ingredientSchema],
+    ingredients: [ingredientSchema], // ingredients + quantity
     servings: {
       type: Number,
       default: 1,
@@ -37,13 +37,13 @@ const recipeSchema = new mongoose.Schema(
       required: [true, 'Cooking description is required'],
     },
     videoUrl: {
-      type: String, // YouTube link or MP4 file path
+      type: String,
       default: '',
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      required: false, // allow recipes without strict user if needed
     },
   },
   { timestamps: true }
