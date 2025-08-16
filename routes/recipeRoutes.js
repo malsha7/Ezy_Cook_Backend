@@ -28,11 +28,11 @@ router.get('/my-recipes', authMiddleware, recipeController.getMyRecipes);
 // Get all system recipes (Home / Recipe list)
 router.get('/', recipeController.getAllRecipes);
 
-//Get single recipe by ID
-router.get('/:id', recipeController.getRecipeById);
-
 // Suggest recipes (search bar)
 router.get('/suggest/search', recipeController.suggestRecipes);
 
-// Filter recipes - recipe suggesting using tools, mealtime, ingredeints
+// Filter recipes - recipe suggesting using tools, mealtime,
 router.post('/filter', recipeController.filterRecipes);
+
+//Get single recipe by ID
+router.get('/:id', recipeController.getRecipeById);
