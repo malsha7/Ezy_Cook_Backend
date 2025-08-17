@@ -36,3 +36,5 @@ router.post('/filter', recipeController.filterRecipes);
 
 //Get single recipe by ID
 router.get('/:id', recipeController.getRecipeById);
+
+module.exports = router;

@@ -14,6 +14,7 @@ app.use(express.json());
 
 // Add routes
 app.use('/api/users', require('./routes/userRoutes')); 
+app.use('/api/recipes', require('./routes/recipeRoutes'));
 
 //Default test route
 app.get('/', (req, res) => {
