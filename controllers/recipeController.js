@@ -56,7 +56,7 @@ exports.updateRecipe = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to update this recipe' });
     }
 
-    // Destructure fields from request body
+    // destructure fields from request body
     let { title, description, mealTime, servings, ingredients, tools, videoUrl } = req.body;
 
     // Parse ingredients if sent as string (form-data)
@@ -166,22 +166,6 @@ exports.getRecipeById = async (req, res) => {
 };
 
 
-/**
- * Suggest recipes for search bar
- * Example: typing "p" -> returns ["pasta", "paste noodles", ...]
- */
-// exports.suggestRecipes = async (req, res) => {
-//   try {
-//     const { query } = req.query;
-//     if (!query) return res.json([]);
-
-//     const recipes = await Recipe.find({ title: { $regex: query, $options: 'i' } }).select('title');
-//     res.json(recipes);
-//   } catch (err) {
-//     res.status(500).json({ message: err.message });
-//   }
-// };
-
 
 // only start letter for suggest recipes 
 /**
@@ -205,30 +189,6 @@ exports.suggestRecipes = async (req, res) => {
 };
 
 
-/**
- * Filter recipes by tools, mealTime, ingredients
- * Tools: array  - aleast one 
- *  MealTime: one option
- * Ingredients: array -  atleast one
- */
-// exports.filterRecipes = async (req, res) => {
-//   try { // $all  - should all are match
-//     const { tools, mealTime, ingredients } = req.body;
-//     const filter = {};
-
-//     if (mealTime) filter.mealTime = mealTime;
-//     if (tools && tools.length > 0) filter.tools = { $all: tools };
-//     if (ingredients && ingredients.length > 0) {
-//       filter['ingredients.name'] = { $all: ingredients };
-//     }
-
-//     const recipes = await Recipe.find(filter);
-//     res.json(recipes);
-//   } catch (err) {
-//     res.status(500).json({ message: err.message });
-//   }
-// };
-
 
 //$in = match if first all then two then at least one 
 
@@ -239,7 +199,7 @@ exports.suggestRecipes = async (req, res) => {
 exports.filterRecipes = async (req, res) => {
   try {
     const { tools = [], mealTime, ingredients = [] } = req.body;
-    const filter = { isSystem: true }; // 🔹 restrict to system recipes
+    const filter = { isSystem: true }; // restrict to system recipes
 
     // mealtime = exact match
     if (mealTime) filter.mealTime = mealTime;
@@ -293,13 +253,14 @@ exports.filterRecipes = async (req, res) => {
 
 exports.addSystemRecipe = async (req, res) => {
   try {
-    let { title, description, ingredients, mealTime, servings, videoUrl, image } = req.body;
+    let { title, description, ingredients, mealTime, servings, videoUrl, tools, image } = req.body;
 
+    // Check required fields
     if (!title || !description || !ingredients) {
       return res.status(400).json({ message: 'Title, description, and ingredients are required' });
     }
 
-    // Parse ingredients if sent as string
+    // --- Parse ingredients if sent as string ---
     if (typeof ingredients === 'string') {
       try {
         ingredients = JSON.parse(ingredients);
@@ -308,20 +269,43 @@ exports.addSystemRecipe = async (req, res) => {
       }
     }
 
+    // --- Parse tools for string or array ---
+    if (tools) {
+      if (typeof tools === 'string') {
+        // Remove wrapping quotes if present
+        tools = tools.replace(/^["']+|["']+$/g, '');
+        try {
+          // Try parsing JSON array string
+          tools = JSON.parse(tools);
+          if (!Array.isArray(tools)) throw new Error();
+        } catch {
+          // Fallback: comma-separated string
+          tools = tools.split(',').map(t => t.trim()).filter(t => t.length > 0);
+        }
+      } else if (!Array.isArray(tools)) {
+        tools = [];
+      }
+    } else {
+      tools = [];
+    }
+
+    // Create recipe
     const recipe = new Recipe({
-      title,
-      description,
+      title: title.trim().replace(/^["']+|["']+$/g, ''),
+      description: description.trim(),
       ingredients,
+      tools,
       mealTime: mealTime || null,
-      servings: servings || 1,
-      image: image || '',       // existing
-      videoUrl: videoUrl || '', // add this
-      createdBy: req.user ? req.user._id : null, // for system recipe use null
-      isSystem: true            // mark as system
+      servings: servings ? Number(servings) : 1,
+      image: req.file ? req.file.path : (image || ''),
+      videoUrl: videoUrl || '',
+      createdBy: req.user ? req.user._id : null,
+      isSystem: true
     });
 
     await recipe.save();
     res.status(201).json(recipe);
+
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
