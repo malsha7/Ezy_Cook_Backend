@@ -9,11 +9,20 @@ const User = require('../models/User');
  */
 exports.createRecipe = async (req, res) => {
   try {
-    const { title, description, ingredients, mealTime, servings } = req.body;
+    let { title, description, ingredients, mealTime, servings } = req.body;
 
     if (!title || !description || !ingredients) {
       return res.status(400).json({ message: 'Title, description, and ingredients are required' });
     }
+
+    // Parse ingredients if it's a string (form-data)
+if (typeof ingredients === 'string') {
+  try {
+    ingredients = JSON.parse(ingredients);
+  } catch (err) {
+    return res.status(400).json({ message: 'Ingredients must be a valid JSON array' });
+  }
+}
 
     const recipe = new Recipe({
       title,
@@ -38,27 +47,59 @@ exports.createRecipe = async (req, res) => {
  */
 exports.updateRecipe = async (req, res) => {
   try {
+    // Find recipe by ID
     const recipe = await Recipe.findById(req.params.id);
-
     if (!recipe) return res.status(404).json({ message: 'Recipe not found' });
 
-    if (recipe.createdBy.toString() !== req.user._id.toString()) {
+    // Only the owner can update
+    if (!req.user || recipe.createdBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Not authorized to update this recipe' });
     }
 
-    const { title, description, ingredients, mealTime, servings } = req.body;
+    // Destructure fields from request body
+    let { title, description, mealTime, servings, ingredients, tools, videoUrl } = req.body;
 
-    if (title) recipe.title = title;
-    if (description) recipe.description = description;
-    if (ingredients) recipe.ingredients = ingredients;
-    if (mealTime) recipe.mealTime = mealTime;
-    if (servings) recipe.servings = servings;
+    // Parse ingredients if sent as string (form-data)
+    if (ingredients && typeof ingredients === 'string') {
+      try {
+        ingredients = JSON.parse(ingredients);
+      } catch (err) {
+        return res.status(400).json({ message: 'Ingredients must be a valid JSON array' });
+      }
+    }
+
+    // Parse tools if sent as string (form-data)
+    if (tools && typeof tools === 'string') {
+      try {
+        tools = JSON.parse(tools);
+      } catch (err) {
+        return res.status(400).json({ message: 'Tools must be a valid JSON array' });
+      }
+    }
+
+    // Update fields if they exist in request
+   //if ('title' in req.body) {recipe.title = String(req.body.title).trim();}
+   if ('title' in req.body) {
+  recipe.title = String(req.body.title)
+    .trim()                  // remove leading/trailing spaces
+    .replace(/^["']+|["']+$/g, ''); // remove starting/ending single or double quotes
+}
+    if (description !== undefined) recipe.description = description.trim();
+    if (mealTime !== undefined) recipe.mealTime = mealTime;
+   if ('servings' in req.body) {
+  recipe.servings = Number(req.body.servings) || recipe.servings;
+}
+    if (ingredients !== undefined) recipe.ingredients = ingredients;
+    if (tools !== undefined) recipe.tools = tools;
+    if (videoUrl !== undefined) recipe.videoUrl = videoUrl;
     if (req.file) recipe.image = req.file.path;
 
+    // Save updated recipe
     await recipe.save();
     res.json(recipe);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error('Error updating recipe:', err);
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -75,7 +116,9 @@ exports.deleteRecipe = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to delete this recipe' });
     }
 
-    await recipe.remove();
+    // Delete the recipe
+    await Recipe.findByIdAndDelete(req.params.id);
+
     res.json({ message: 'Recipe deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -244,6 +287,42 @@ exports.filterRecipes = async (req, res) => {
 
   } catch (err) {
     console.error(err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.addSystemRecipe = async (req, res) => {
+  try {
+    let { title, description, ingredients, mealTime, servings, videoUrl, image } = req.body;
+
+    if (!title || !description || !ingredients) {
+      return res.status(400).json({ message: 'Title, description, and ingredients are required' });
+    }
+
+    // Parse ingredients if sent as string
+    if (typeof ingredients === 'string') {
+      try {
+        ingredients = JSON.parse(ingredients);
+      } catch (err) {
+        return res.status(400).json({ message: 'Ingredients must be a valid JSON array' });
+      }
+    }
+
+    const recipe = new Recipe({
+      title,
+      description,
+      ingredients,
+      mealTime: mealTime || null,
+      servings: servings || 1,
+      image: image || '',       // existing
+      videoUrl: videoUrl || '', // add this
+      createdBy: req.user ? req.user._id : null, // for system recipe use null
+      isSystem: true            // mark as system
+    });
+
+    await recipe.save();
+    res.status(201).json(recipe);
+  } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };

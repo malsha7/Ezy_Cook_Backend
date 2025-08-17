@@ -25,6 +25,10 @@ router.get('/my-recipes', authMiddleware, recipeController.getMyRecipes);
   System Recipes
  */
 
+
+//add sysem to recipes
+router.post('/system', authMiddleware, recipeController.addSystemRecipe);
+
 // Get all system recipes (Home / Recipe list)
 router.get('/', recipeController.getAllRecipes);
 
