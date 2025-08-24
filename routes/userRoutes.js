@@ -15,6 +15,9 @@ router.post('/forgot-password', userController.sendOtp); // renamed to match con
 router.put('/reset-password', userController.resetPassword);
 //router.put('/profile', userController.updateProfile);
 
+//get profile
+router.get("/profile", authMiddleware, userController.getProfile);
+
 // Profile
 router.put('/profile', authMiddleware, upload.single('profileImage'), userController.updateProfile);
 
