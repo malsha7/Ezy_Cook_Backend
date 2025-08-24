@@ -272,7 +272,7 @@ exports.updateProfile = async (req, res) => {
 
     // Return updated user (excluding sensitive data)
     const userResponse = {
-      id: user._id,
+      _id: user._id,
       name: user.name,
       username: user.username,
       email: user.email,
