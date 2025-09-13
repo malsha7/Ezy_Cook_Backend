@@ -2,6 +2,9 @@ const express = require('express');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 
+// Fix for __dirname in ES modules
+const path = require("path");
+
 dotenv.config();
 
 // MongoDB connection
@@ -12,6 +15,7 @@ const app = express();
 // Middleware to parse JSON bodies
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Add routes
 app.use('/api/users', require('./routes/userRoutes')); 

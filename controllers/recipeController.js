@@ -28,6 +28,7 @@ exports.createRecipe = async (req, res) => {
           .json({ message: "Ingredients must be a valid JSON array" });
       }
     }
+    
 
     const recipe = new Recipe({
       title,
@@ -172,7 +173,17 @@ exports.getMyRecipes = async (req, res) => {
       createdBy: req.user._id,
       isSystem: false,
     });
-    res.json(recipes);
+
+    // Convert to plain objects and adjust image paths
+    const formattedRecipes = recipes.map((recipe) => {
+      const obj = recipe.toObject();
+      if (obj.image) {
+        obj.image = `${req.protocol}://${req.get("host")}/${obj.image.replace(/\\/g, "/")}`;
+      }
+      return obj;
+    });
+
+    res.json(formattedRecipes);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -188,8 +199,20 @@ exports.getRecipeById = async (req, res) => {
       "createdBy",
       "username email"
     );
-    if (!recipe) return res.status(404).json({ message: "Recipe not found" });
-    res.json(recipe);
+
+    if (!recipe) {
+      return res.status(404).json({ message: "Recipe not found" });
+    }
+
+    // Convert to plain object so we can safely modify
+    const recipeObj = recipe.toObject();
+
+    // Reformat image path → full URL
+    if (recipeObj.image) {
+      recipeObj.image = `${req.protocol}://${req.get("host")}/${recipeObj.image.replace(/\\/g, "/")}`;
+    }
+
+    res.json(recipeObj);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
