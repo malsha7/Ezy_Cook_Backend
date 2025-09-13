@@ -175,15 +175,15 @@ exports.getMyRecipes = async (req, res) => {
     });
 
     // Convert to plain objects and adjust image paths
-    const formattedRecipes = recipes.map((recipe) => {
-      const obj = recipe.toObject();
-      if (obj.image) {
-        obj.image = `${req.protocol}://${req.get("host")}/${obj.image.replace(/\\/g, "/")}`;
-      }
-      return obj;
-    });
+    // const formattedRecipes = recipes.map((recipe) => {
+    //   const obj = recipe.toObject();
+    //   if (obj.image) {
+    //     obj.image = `${req.protocol}://${req.get("host")}/${obj.image.replace(/\\/g, "/")}`;
+    //   }
+    //   return obj;
+    // });
 
-    res.json(formattedRecipes);
+    res.json(recipes);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -205,14 +205,14 @@ exports.getRecipeById = async (req, res) => {
     }
 
     // Convert to plain object so we can safely modify
-    const recipeObj = recipe.toObject();
+    // const recipeObj = recipe.toObject();
 
     // Reformat image path → full URL
-    if (recipeObj.image) {
-      recipeObj.image = `${req.protocol}://${req.get("host")}/${recipeObj.image.replace(/\\/g, "/")}`;
-    }
+    // if (recipeObj.image) {
+    //   recipeObj.image = `${req.protocol}://${req.get("host")}/${recipeObj.image.replace(/\\/g, "/")}`;
+    // }
 
-    res.json(recipeObj);
+    res.json(recipe);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
