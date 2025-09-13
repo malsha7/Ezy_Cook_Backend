@@ -150,16 +150,16 @@ exports.getProfile = async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
 
     // Build full image URL if profileImage exists
-    let fullImageUrl = "";
-    if (user.profileImage) {
-      fullImageUrl = `${req.protocol}://${req.get("host")}${user.profileImage}`;
-    }
+    // let fullImageUrl = "";
+    // if (user.profileImage) {
+    //   fullImageUrl = `${req.protocol}://${req.get("host")}${user.profileImage}`;
+    // }
 
     res.json({
       message: "Profile fetched successfully",
       user: {
         ...user.toObject(),
-        profileImage: fullImageUrl || null,
+        profileImage: user.profileImage || null,
       },
     });
   } catch (err) {
